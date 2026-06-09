@@ -1,0 +1,818 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<title>РОЙ.IO</title>
+<style>
+  :root{
+    --bg:#070710;
+    --txt:#f0f2ff;
+    --dim:#8089b3;
+    --amber:#ffc34d;
+    --hot:#ff4d6d;
+  }
+  *{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent;user-select:none;}
+  html,body{height:100%;overflow:hidden;background:var(--bg);color:var(--txt);
+    font-family:"Verdana","Segoe UI",system-ui,sans-serif;}
+  canvas{display:block;width:100%;height:100%;cursor:crosshair;touch-action:none;}
+  #wrap{position:relative;width:100%;height:100%;touch-action:none;}
+
+  /* HUD */
+  #hud{position:absolute;inset:0;pointer-events:none;display:none;}
+  #board{position:absolute;top:12px;right:12px;width:208px;background:rgba(7,7,16,.7);
+    border:1px solid rgba(128,137,179,.25);border-radius:10px;padding:10px 12px;backdrop-filter:blur(4px);}
+  #board h3{font-size:10px;letter-spacing:.3em;color:var(--dim);margin-bottom:6px;}
+  .brow{display:flex;justify-content:space-between;font-size:12px;line-height:1.7;
+    font-variant-numeric:tabular-nums;}
+  .brow .nm{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:140px;}
+  .brow.me{color:var(--amber);text-shadow:0 0 8px rgba(255,195,77,.5);}
+  #feed{position:absolute;top:12px;left:12px;font-size:12px;line-height:1.7;color:var(--dim);max-width:46vw;}
+  #feed .k{color:var(--txt);} #feed .hot{color:var(--hot);} #feed .me{color:var(--amber);}
+  #feed div{opacity:0;animation:fin .25s forwards,fout .6s 5s forwards;}
+  @keyframes fin{to{opacity:1;}} @keyframes fout{to{opacity:0;}}
+  #mystats{position:absolute;bottom:14px;left:14px;font-size:12px;color:var(--dim);
+    font-variant-numeric:tabular-nums;letter-spacing:.08em;}
+  #mystats b{color:var(--txt);font-size:20px;}
+  #enWrap{margin-top:6px;width:150px;}
+  #enLabel{font-size:9px;letter-spacing:.3em;color:var(--dim);margin-bottom:3px;}
+  #enBar{height:6px;border-radius:3px;background:rgba(128,137,179,.18);overflow:hidden;}
+  #enFill{height:100%;width:100%;background:var(--amber);border-radius:3px;
+    box-shadow:0 0 10px rgba(255,195,77,.6);}
+  #minimap{position:absolute;bottom:14px;right:14px;width:118px;height:118px;
+    border:1px solid rgba(128,137,179,.3);border-radius:8px;background:rgba(7,7,16,.6);}
+  #condBtn{position:absolute;bottom:150px;right:14px;left:auto;pointer-events:auto;display:none;
+    width:98px;height:98px;border-radius:50%;border:2px solid var(--amber);color:var(--amber);
+    background:rgba(255,195,77,.08);font-family:inherit;font-size:14px;font-weight:700;
+    letter-spacing:.1em;overflow:hidden;}
+  @media (pointer:coarse){ #condBtn{display:block;} }
+  #joyBase{position:absolute;width:112px;height:112px;border-radius:50%;
+    border:2px solid rgba(255,195,77,.4);background:rgba(255,195,77,.05);
+    display:none;pointer-events:none;z-index:70;transform:translate(-50%,-50%);}
+  #joyKnob{position:absolute;width:46px;height:46px;border-radius:50%;
+    background:rgba(255,195,77,.55);box-shadow:0 0 16px rgba(255,195,77,.5);
+    display:none;pointer-events:none;z-index:71;transform:translate(-50%,-50%);}
+  #hintBar{position:absolute;top:60px;left:50%;transform:translateX(-50%);
+    background:rgba(7,7,16,.8);border:1px solid rgba(255,195,77,.4);border-radius:12px;
+    padding:10px 16px;font-size:12px;color:var(--txt);letter-spacing:.04em;line-height:1.6;
+    text-align:center;max-width:88vw;display:none;backdrop-filter:blur(4px);}
+
+  /* screens */
+  .screen{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;
+    justify-content:center;text-align:center;padding:20px;
+    background:radial-gradient(ellipse at 50% 110%,rgba(255,195,77,.07),transparent 55%);}
+  h1{font-size:clamp(56px,12vw,108px);font-weight:700;letter-spacing:.14em;margin-left:.14em;
+    color:var(--amber);filter:drop-shadow(0 0 28px rgba(255,195,77,.4));}
+  .sub{color:var(--dim);font-size:12px;letter-spacing:.32em;margin:8px 0 14px;}
+  .rules{max-width:470px;margin-bottom:22px;text-align:left;}
+  .rule{display:flex;gap:11px;align-items:flex-start;background:rgba(128,137,179,.08);
+    border:1px solid rgba(128,137,179,.18);border-radius:12px;padding:10px 13px;margin:7px 0;
+    font-size:12.5px;color:var(--dim);line-height:1.55;}
+  .rule .ic{font-size:20px;line-height:1.2;}
+  .rule b{color:var(--txt);}
+  .rule .am{color:var(--amber);font-weight:700;}
+  #nameInput{background:rgba(128,137,179,.12);border:1px solid rgba(128,137,179,.35);
+    border-radius:999px;color:var(--txt);font-family:inherit;font-size:15px;text-align:center;
+    padding:12px 22px;width:min(300px,80vw);outline:none;}
+  #nameInput:focus{border-color:var(--amber);}
+  .bigbtn{margin-top:16px;border:none;border-radius:999px;background:var(--amber);color:#070710;
+    font-family:inherit;font-weight:700;font-size:16px;letter-spacing:.2em;padding:15px 54px;
+    cursor:pointer;box-shadow:0 0 30px rgba(255,195,77,.4);}
+  .bigbtn:active{transform:scale(.96);}
+  .ghostbtn{margin-top:10px;border:1px solid rgba(128,137,179,.4);background:transparent;
+    color:var(--dim);font-family:inherit;font-size:12px;letter-spacing:.15em;
+    padding:10px 28px;border-radius:999px;cursor:pointer;}
+  #deadTitle{font-size:clamp(28px,7vw,50px);font-weight:700;letter-spacing:.1em;color:var(--hot);
+    filter:drop-shadow(0 0 20px rgba(255,77,109,.45));}
+  .dstats{margin:18px 0 6px;color:var(--dim);font-size:13px;line-height:2.1;letter-spacing:.08em;}
+  .dstats b{color:var(--txt);font-size:15px;}
+  .hint{position:absolute;bottom:16px;width:100%;text-align:center;font-size:10px;
+    color:rgba(128,137,179,.7);letter-spacing:.2em;}
+  .hidden{display:none !important;}
+</style>
+</head>
+<body>
+<div id="wrap">
+  <canvas id="cv"></canvas>
+
+  <div id="hud">
+    <div id="feed"></div>
+    <div id="board"><h3>ТОП-8 РОЁВ</h3><div id="boardRows"></div></div>
+    <div id="mystats"></div>
+    <canvas id="minimap" width="118" height="118"></canvas>
+    <button id="condBtn">СЖАТЬ</button>
+    <div id="joyBase"></div>
+    <div id="joyKnob"></div>
+    <div id="hintBar"></div>
+  </div>
+
+  <div id="menu" class="screen">
+    <h1>РОЙ</h1>
+    <div class="sub">ТЫ — НЕ ОДИН. ТЫ — ТЫСЯЧА.</div>
+    <div class="rules">
+      <div class="rule"><span class="ic">🌫️</span><div><b>Россыпь</b> (ничего не жмёшь) — рой расползается широким облаком.
+        Оно само засасывает пыльцу: <span class="am">каждая точка = +1 мошка</span>. Тут же копится энергия. Минус: рыхлый строй слаб в бою.</div></div>
+      <div class="rule"><span class="ic">☄️</span><div><b>Сжатие</b> (держишь кнопку) — рой схлопывается в боевую комету: летит быстрее,
+        и его мошки <span class="am">побеждают рыхлых</span>, причём с шансом 40% <span class="am">переманивают побеждённую мошку к тебе</span>.
+        Цена: энергия тает, еда почти не собирается.</div></div>
+      <div class="rule"><span class="ic">⚔️</span><div><b>Зачем драться:</b> каждая погибшая мошка осыпается пыльцой прямо на поле боя — собери её первым.
+        Переманенные переходят в твой рой. А если добьёшь рой целиком — <span class="am">вся его масса твоя + энергия мгновенно до 100%</span>.</div></div>
+      <div class="rule"><span class="ic">⚠️</span><div>Сжатый против сжатого (и рыхлый против рыхлого) разменивается <b>1:1</b> — в лоб на равных не лезь.
+        Не атакуй с пустой шкалой энергии. Меньше 5 мошек — рой рассеян. Красная граница сжигает.</div></div>
+    </div>
+    <input id="nameInput" maxlength="14" placeholder="имя твоего роя" autocomplete="off">
+    <button class="bigbtn" id="playBtn">ВЫПУСТИТЬ РОЙ</button>
+    <div class="hint" id="menuHint"></div>
+  </div>
+
+  <div id="dead" class="screen hidden">
+    <div id="deadTitle">РОЙ РАССЕЯН</div>
+    <div class="dstats" id="deadStats"></div>
+    <button class="bigbtn" id="respawnBtn">НОВЫЙ РОЙ</button>
+    <button class="ghostbtn" id="toMenuBtn">В МЕНЮ</button>
+  </div>
+</div>
+
+<script>
+"use strict";
+/* =====================================================
+   РОЙ.IO — swarm-mind arena
+   Core verb: spread to farm / condense to fight.
+   ===================================================== */
+const TAU=Math.PI*2;
+const WORLD=3400;            // arena radius
+const FOOD_TARGET=520;
+const BOT_COUNT=9;
+const UNIT_CAP=260;
+const START_UNITS=32;
+const MIN_UNITS=5;
+
+const cv=document.getElementById('cv');
+const ctx=cv.getContext('2d');
+const mmCv=document.getElementById('minimap');
+const mmCtx=mmCv.getContext('2d');
+let W=0,H=0,DPR=1;
+function resize(){
+  DPR=Math.min(window.devicePixelRatio||1,1.75);
+  W=innerWidth;H=innerHeight;
+  cv.width=W*DPR;cv.height=H*DPR;
+  ctx.setTransform(DPR,0,0,DPR,0,0);
+}
+addEventListener('resize',resize);resize();
+
+const rnd=(a,b)=>a+Math.random()*(b-a);
+const clamp=(v,a,b)=>v<a?a:v>b?b:v;
+const d2=(ax,ay,bx,by)=>{const dx=ax-bx,dy=ay-by;return dx*dx+dy*dy;};
+
+/* ---------- names / skins ---------- */
+const NAMES=['Саранча','Гнус','Мошкара','Комарилья','ЗлойУлей','Оводы_ТВ','Шершень228',
+  'Мотыльки','Светляки','Тля','ЖукиВместе','Слепень','НеМошки','РойВойныч','Долгоносик',
+  'ПчёлыПротивМёда','Стрекозлы','Жужжащие','Трутни','Мошка3000'];
+let pool=[];
+function pickName(){ if(!pool.length)pool=[...NAMES].sort(()=>Math.random()-0.5); return pool.pop(); }
+const HUES=[45,160,200,280,330,20,100,250,180,310,70,140];
+
+/* ---------- state ---------- */
+const G={
+  state:'menu', t:0,
+  swarms:[], foods:[], fx:[],
+  player:null,
+  cam:{x:0,y:0,z:0.8},
+  nextId:1,
+};
+
+/* ---------- food ---------- */
+function addFood(x,y,hue){
+  const a=Math.atan2(y,x), r=Math.hypot(x,y);
+  if(r>WORLD-20){ x=Math.cos(a)*(WORLD-30); y=Math.sin(a)*(WORLD-30); }
+  G.foods.push({x,y,hue:hue!==undefined?hue:rnd(0,360),phase:rnd(0,TAU)});
+}
+function scatterFood(n){
+  for(let i=0;i<n;i++){
+    // cluster-ish scattering: half random, half near random cluster centers
+    if(Math.random()<0.5||!scatterFood.c||Math.random()<0.05){
+      const a=rnd(0,TAU), r=Math.sqrt(Math.random())*(WORLD-60);
+      scatterFood.c={x:Math.cos(a)*r,y:Math.sin(a)*r};
+    }
+    addFood(scatterFood.c.x+rnd(-160,160),scatterFood.c.y+rnd(-160,160));
+  }
+}
+
+/* ---------- swarm ---------- */
+function makeSwarm(name,isBot,units){
+  const a=rnd(0,TAU), rr=Math.sqrt(Math.random())*(WORLD*0.72);
+  const x=Math.cos(a)*rr, y=Math.sin(a)*rr;
+  const s={
+    id:G.nextId++, name, isBot,
+    hue:HUES[(Math.random()*HUES.length)|0],
+    tx:x, ty:y,          // commanded target point
+    cx:x, cy:y,          // centroid (computed)
+    units:[],
+    cond:false, energy:1,
+    kills:0, dead:false,
+    guard:2.5,
+    lastHitBy:null, lastHitT:0,
+    // bot brain
+    brainT:0, mode:'farm', dest:{x,y}, prey:null, fear:0,
+    temper:Math.random(),       // 0 coward .. 1 berserk
+  };
+  const n=units||START_UNITS;
+  for(let i=0;i<n;i++) s.units.push(makeUnit(x+rnd(-40,40),y+rnd(-40,40)));
+  return s;
+}
+function makeUnit(x,y){
+  return {x,y,vx:rnd(-20,20),vy:rnd(-20,20),
+    oa:rnd(0,TAU), or:Math.random(), os:rnd(0.4,1.4)*(Math.random()<0.5?-1:1),
+    hit:false,dead:false};
+}
+function swarmR(s){ return 30+Math.sqrt(s.units.length)*7.5; }
+
+function resetWorld(){
+  G.swarms.length=0;G.foods.length=0;G.fx.length=0;
+  scatterFood(FOOD_TARGET);
+  for(let i=0;i<BOT_COUNT;i++) G.swarms.push(makeSwarm(pickName(),true,(rnd(20,110)|0)));
+}
+
+/* ---------- input ---------- */
+const mouse={x:innerWidth/2,y:innerHeight/2,down:false};
+let usingTouch=matchMedia('(pointer:coarse)').matches;
+const joy={active:false,id:-1,ox:0,oy:0,dx:0,dy:0};
+const joyBase=document.getElementById('joyBase');
+const joyKnob=document.getElementById('joyKnob');
+function joyShow(){
+  joyBase.style.display=joyKnob.style.display='block';
+  joyBase.style.left=joy.ox+'px';joyBase.style.top=joy.oy+'px';
+  const m=Math.hypot(joy.dx,joy.dy),cap=46;
+  const k=m>cap?cap/m:1;
+  joyKnob.style.left=(joy.ox+joy.dx*k)+'px';
+  joyKnob.style.top=(joy.oy+joy.dy*k)+'px';
+}
+function joyHide(){joyBase.style.display=joyKnob.style.display='none';}
+addEventListener('pointermove',e=>{
+  if(e.pointerType==='touch'){
+    if(joy.active&&e.pointerId===joy.id){
+      joy.dx=e.clientX-joy.ox;joy.dy=e.clientY-joy.oy;joyShow();
+    }
+    return;
+  }
+  mouse.x=e.clientX;mouse.y=e.clientY;
+});
+cv.addEventListener('pointerdown',e=>{
+  if(e.pointerType==='touch'){
+    usingTouch=true;
+    if(!joy.active){
+      joy.active=true;joy.id=e.pointerId;
+      joy.ox=e.clientX;joy.oy=e.clientY;joy.dx=joy.dy=0;
+      joyShow();
+    }
+    return;
+  }
+  mouse.x=e.clientX;mouse.y=e.clientY;mouse.down=true;
+});
+function joyEnd(e){
+  if(joy.active&&e.pointerId===joy.id){joy.active=false;joy.dx=joy.dy=0;joyHide();}
+  if(e.pointerType!=='touch')mouse.down=false;
+}
+addEventListener('pointerup',joyEnd);
+addEventListener('pointercancel',joyEnd);
+const keys={};
+addEventListener('keydown',e=>{keys[e.code]=true;if(e.code==='Space')e.preventDefault();});
+addEventListener('keyup',e=>keys[e.code]=false);
+let condHeld=false;
+const cb=document.getElementById('condBtn');
+cb.addEventListener('pointerdown',e=>{e.preventDefault();condHeld=true;});
+cb.addEventListener('pointerup',()=>condHeld=false);
+cb.addEventListener('pointercancel',()=>condHeld=false);
+
+/* ---------- bot brain ---------- */
+function botThink(s,dt){
+  s.brainT-=dt;
+  if(s.brainT>0) return;
+  s.brainT=rnd(0.18,0.32);
+  const n=s.units.length;
+
+  // sense neighbours
+  let threat=null, threatD=1e18, prey=null, preyD=1e18;
+  for(const o of G.swarms){
+    if(o===s||o.dead) continue;
+    const dd=d2(s.cx,s.cy,o.cx,o.cy);
+    const ratio=o.units.length/Math.max(1,n);
+    if(ratio>1.15 && o.cond && dd<700*700 && dd<threatD){threat=o;threatD=dd;}
+    if(ratio<0.8 && o.guard<=0 && dd<800*800 && dd<preyD){prey=o;preyD=dd;}
+  }
+
+  // border discomfort
+  const m=Math.hypot(s.cx,s.cy);
+
+  if(threat && (s.temper<0.85 || threat.units.length>n*2)){
+    s.mode='flee';
+    const ang=Math.atan2(s.cy-threat.cy,s.cx-threat.cx)+rnd(-0.4,0.4);
+    let fx=s.cx+Math.cos(ang)*600, fy=s.cy+Math.sin(ang)*600;
+    if(Math.hypot(fx,fy)>WORLD-200){ // don't flee into the wall
+      const toC=Math.atan2(-s.cy,-s.cx);
+      fx=s.cx+Math.cos(toC+1.1)*600; fy=s.cy+Math.sin(toC+1.1)*600;
+    }
+    s.dest={x:fx,y:fy};
+    s.cond = s.energy>0.25;       // condensed escape if fuel allows
+    return;
+  }
+
+  const wantHunt = prey && s.energy>0.55 && n>22 && Math.random()<0.3+s.temper*0.6;
+  if(s.mode==='hunt' && s.prey && !s.prey.dead && s.energy>0.12){
+    // continue the dive
+    const p=s.prey;
+    s.dest={x:p.cx,y:p.cy};
+    s.cond = d2(s.cx,s.cy,p.cx,p.cy)<520*520;
+    if(p.units.length>s.units.length*1.1) {s.mode='farm';s.prey=null;s.cond=false;}
+    return;
+  }
+  if(wantHunt){
+    s.mode='hunt'; s.prey=prey;
+    s.dest={x:prey.cx,y:prey.cy};
+    s.cond=d2(s.cx,s.cy,prey.cx,prey.cy)<520*520;
+    return;
+  }
+
+  // farm: head to nearest food cluster
+  s.mode='farm'; s.cond=false; s.prey=null;
+  if(m>WORLD-320){ s.dest={x:s.cx*-0.2,y:s.cy*-0.2}; return; }
+  let best=null,bd=1e18;
+  for(let i=0;i<G.foods.length;i+=3){
+    const f=G.foods[i];
+    const dd=d2(s.cx,s.cy,f.x,f.y);
+    if(dd<bd){bd=dd;best=f;}
+  }
+  s.dest = best?{x:best.x,y:best.y}:{x:rnd(-1,1)*WORLD*0.5,y:rnd(-1,1)*WORLD*0.5};
+}
+
+/* ---------- swarm update ---------- */
+function updateSwarm(s,dt){
+  if(s.dead) return;
+  s.guard=Math.max(0,s.guard-dt);
+  const n=s.units.length;
+
+  // command
+  let wantCond=false, dx=0, dy=0;
+  if(s.isBot){
+    botThink(s,dt);
+    wantCond=s.cond;
+    dx=s.dest.x-s.tx; dy=s.dest.y-s.ty;
+  } else {
+    wantCond=(mouse.down||keys['Space']||condHeld);
+    if(usingTouch){
+      // джойстик: направление от точки касания, рой летит в эту сторону
+      const m=Math.hypot(joy.dx,joy.dy);
+      if(joy.active&&m>12){
+        const wx=s.cx+joy.dx/m*520, wy=s.cy+joy.dy/m*520;
+        dx=wx-s.tx; dy=wy-s.ty;
+      } else { dx=0; dy=0; } // палец отпущен — рой останавливается и кормится
+    } else {
+      // мышь: рой стремится к курсору
+      const wx=(mouse.x-W/2)/G.cam.z+G.cam.x;
+      const wy=(mouse.y-H/2)/G.cam.z+G.cam.y;
+      dx=wx-s.tx; dy=wy-s.ty;
+    }
+    if(wantCond&&!hintCondUsed){hintCondUsed=true;hideHint();}
+  }
+
+  // energy economics
+  if(wantCond && s.energy>0.04){
+    s.cond=true;
+    s.energy=Math.max(0,s.energy-0.24*dt);
+    if(s.energy<=0) s.cond=false;
+  } else {
+    s.cond=false;
+    s.energy=Math.min(1,s.energy+0.13*dt);
+  }
+
+  // move command point
+  const spd=s.cond?330:215;
+  const dd=Math.hypot(dx,dy);
+  if(dd>2){
+    const k=Math.min(1,spd*dt/dd);
+    s.tx+=dx*k; s.ty+=dy*k;
+  }
+  // keep target inside arena
+  const tm=Math.hypot(s.tx,s.ty);
+  if(tm>WORLD-40){ s.tx*= (WORLD-40)/tm; s.ty*=(WORLD-40)/tm; }
+
+  // formation radius
+  const baseR=swarmR(s);
+  const spreadK=s.cond?0.16:1;
+  // unit physics
+  let sx=0,sy=0;
+  const stiff=s.cond?10:5.5;
+  for(const u of s.units){
+    u.oa+=u.os*dt*(s.cond?2.2:1);
+    const fr=(8+u.or*baseR)*spreadK;
+    const fx=s.tx+Math.cos(u.oa)*fr;
+    const fy=s.ty+Math.sin(u.oa)*fr;
+    u.vx+=(fx-u.x)*stiff*dt*60*0.16;
+    u.vy+=(fy-u.y)*stiff*dt*60*0.16;
+    const damp=Math.pow(s.cond?0.86:0.90,dt*60);
+    u.vx*=damp;u.vy*=damp;
+    u.x+=u.vx*dt;u.y+=u.vy*dt;
+    // border burns units
+    const um=Math.hypot(u.x,u.y);
+    if(um>WORLD){
+      u.dead=true;
+      spark(u.x,u.y,0,1);
+      continue;
+    }
+    sx+=u.x;sy+=u.y;
+    u.hit=false;
+  }
+  // purge dead
+  for(let i=s.units.length-1;i>=0;i--) if(s.units[i].dead){ s.units.splice(i,1); }
+  if(s.units.length>0){ s.cx=sx/s.units.length; s.cy=sy/s.units.length; }
+
+  if(s.units.length<MIN_UNITS){ killSwarm(s); }
+}
+
+/* ---------- spatial hash & combat ---------- */
+const CELL=26;
+function buildHash(){
+  const map=new Map();
+  for(const s of G.swarms){
+    if(s.dead) continue;
+    for(const u of s.units){
+      const key=((u.x/CELL)|0)+','+((u.y/CELL)|0);
+      let arr=map.get(key);
+      if(!arr){arr=[];map.set(key,arr);}
+      arr.push({u,s});
+    }
+  }
+  return map;
+}
+function combat(hash){
+  const R2=13*13;
+  for(const [key,arr] of hash){
+    if(arr.length<1) continue;
+    const [kx,ky]=key.split(',').map(Number);
+    for(const a of arr){
+      if(a.u.dead||a.u.hit||a.s.guard>0) continue;
+      // scan own + neighbour cells
+      let resolved=false;
+      for(let ox=-1;ox<=1&&!resolved;ox++)for(let oy=-1;oy<=1&&!resolved;oy++){
+        const narr=hash.get((kx+ox)+','+(ky+oy));
+        if(!narr) continue;
+        for(const b of narr){
+          if(b.s===a.s||b.u.dead||b.u.hit||b.s.guard>0) continue;
+          if(d2(a.u.x,a.u.y,b.u.x,b.u.y)>R2) continue;
+          resolve(a,b);
+          resolved=true;
+          break;
+        }
+      }
+    }
+  }
+}
+function resolve(a,b){
+  const ac=a.s.cond, bc=b.s.cond;
+  a.u.hit=b.u.hit=true;
+  const mark=(v,att)=>{v.s.lastHitBy=att.s;v.s.lastHitT=G.t;};
+  const drop=(u)=>{if(Math.random()<0.65)addFood(u.x+rnd(-5,5),u.y+rnd(-5,5));};
+  if(ac===bc){ // равный размен 1:1 — обе осыпаются пыльцой
+    a.u.dead=b.u.dead=true;
+    mark(a,b);mark(b,a);
+    drop(a.u);drop(b.u);
+    spark((a.u.x+b.u.x)/2,(a.u.y+b.u.y)/2,(a.s.hue+b.s.hue)/2,2);
+  } else {
+    const c=ac?a:b, sp=ac?b:a;       // сжатый против рыхлого
+    sp.u.dead=true; mark(sp,c);
+    if(Math.random()<0.4 && c.s.units.length<UNIT_CAP){
+      // переманивание: мошка меняет рой
+      const nu=makeUnit(sp.u.x,sp.u.y);
+      nu.vx=sp.u.vx;nu.vy=sp.u.vy;
+      c.s.units.push(nu);
+      spark(sp.u.x,sp.u.y,c.s.hue,3);
+    } else {
+      drop(sp.u);
+      spark(sp.u.x,sp.u.y,sp.s.hue,2);
+    }
+    if(Math.random()<0.3){ c.u.dead=true; mark(c,sp); drop(c.u); spark(c.u.x,c.u.y,c.s.hue,1); }
+  }
+}
+function killSwarm(s){
+  if(s.dead) return;
+  s.dead=true;
+  // burst into food
+  for(const u of s.units){
+    if(Math.random()<0.8) addFood(u.x+rnd(-8,8),u.y+rnd(-8,8),s.hue);
+  }
+  for(let i=0;i<14;i++) addFood(s.cx+rnd(-60,60),s.cy+rnd(-60,60),s.hue);
+  spark(s.cx,s.cy,s.hue,26);
+  const by=(G.t-s.lastHitT<3)?s.lastHitBy:null;
+  if(by&&!by.dead){ by.kills++; by.energy=1; }   // добивание = полный заряд
+  feed(s,by);
+  if(s.isBot){
+    setTimeout(()=>{
+      const idx=G.swarms.indexOf(s);
+      if(idx>=0) G.swarms[idx]=makeSwarm(pickName(),true,(rnd(20,60)|0));
+    },2000);
+  } else playerDied(by);
+}
+
+/* ---------- fx / feed ---------- */
+function spark(x,y,hue,n){
+  if(G.fx.length>400) return;
+  for(let i=0;i<n;i++){
+    const a=rnd(0,TAU),sp=rnd(30,190);
+    G.fx.push({x,y,vx:Math.cos(a)*sp,vy:Math.sin(a)*sp,life:rnd(.25,.6),max:.6,hue});
+  }
+}
+function feed(victim,by){
+  const el=document.getElementById('feed');
+  const row=document.createElement('div');
+  const vn=victim.isBot?victim.name:'<span class="me">твой рой</span>';
+  if(by){
+    const bn=by.isBot?by.name:'<span class="me">ты</span>';
+    row.innerHTML=`<span class="k">${bn}</span> рассеял <span class="hot">${vn}</span>`;
+  } else {
+    row.innerHTML=`<span class="hot">${vn}</span> истаял`;
+  }
+  el.prepend(row);
+  while(el.children.length>5) el.removeChild(el.lastChild);
+  setTimeout(()=>row.remove(),5800);
+}
+
+/* ---------- food pickup ---------- */
+function pickup(hash){
+  const R2=15*15;
+  for(let i=G.foods.length-1;i>=0;i--){
+    const f=G.foods[i];
+    const kx=(f.x/CELL)|0, ky=(f.y/CELL)|0;
+    let eater=null;
+    outer:
+    for(let ox=-1;ox<=1;ox++)for(let oy=-1;oy<=1;oy++){
+      const arr=hash.get((kx+ox)+','+(ky+oy));
+      if(!arr) continue;
+      for(const e of arr){
+        if(e.u.dead) continue;
+        if(d2(f.x,f.y,e.u.x,e.u.y)<R2){ eater=e.s; break outer; }
+      }
+    }
+    if(eater){
+      G.foods.splice(i,1);
+      if(eater.units.length<UNIT_CAP){
+        const nu=makeUnit(f.x,f.y);
+        nu.vx=rnd(-60,60);nu.vy=rnd(-60,60);
+        eater.units.push(nu);
+      }
+      if(eater===G.player) spark(f.x,f.y,f.hue,1);
+    }
+  }
+}
+
+/* ---------- player lifecycle ---------- */
+/* ---------- подсказки ---------- */
+let hintCondUsed=false, hintTimer=null;
+function showHint(){
+  const hb=document.getElementById('hintBar');
+  hb.innerHTML = usingTouch
+    ? '👆 Веди пальцем в любом месте — рой летит в эту сторону<br>☄️ Держи кнопку <b style="color:var(--amber)">СЖАТЬ</b> — атака. Отпустил — рой кормится'
+    : '🖱 Мышь — направление роя<br>☄️ Держи <b style="color:var(--amber)">ЛКМ или пробел</b> — сжатие для атаки';
+  hb.style.display='block';
+  clearTimeout(hintTimer);
+  hintTimer=setTimeout(hideHint,9000);
+}
+function hideHint(){document.getElementById('hintBar').style.display='none';}
+document.getElementById('menuHint').textContent = usingTouch
+  ? '📱 ПАЛЕЦ — НАПРАВЛЕНИЕ · КНОПКА СЖАТЬ — АТАКА'
+  : '🖱 МЫШЬ — НАПРАВЛЕНИЕ · ЛКМ / ПРОБЕЛ — СЖАТЬ';
+
+let runStart=0,bestN=0;
+function startGame(){
+  resetWorld();
+  spawnPlayer();
+  G.state='play';
+  show('hud');hide('menu');hide('dead');
+  hintCondUsed=false;
+  showHint();
+}
+function spawnPlayer(){
+  const name=(document.getElementById('nameInput').value.trim()||'Безымянный рой').slice(0,14);
+  const p=makeSwarm(name,false);
+  p.hue=45;
+  G.player=p;
+  G.swarms.push(p);
+  G.cam.x=p.cx;G.cam.y=p.cy;G.cam.z=0.9;
+  runStart=performance.now();bestN=p.units.length;
+}
+function respawn(){
+  const i=G.swarms.indexOf(G.player);
+  if(i>=0)G.swarms.splice(i,1);
+  spawnPlayer();
+  G.state='play';
+  show('hud');hide('dead');
+  if(!hintCondUsed)showHint();
+}
+function playerDied(by){
+  G.state='dead';hide('hud');
+  const t=((performance.now()-runStart)/1000)|0;
+  document.getElementById('deadTitle').textContent=
+    by?`${by.name.toUpperCase()} РАССЕЯЛ ТВОЙ РОЙ`:'РОЙ ИСТАЯЛ';
+  document.getElementById('deadStats').innerHTML=
+    `Пик роя: <b>${bestN}</b> мошек · Рассеял роёв: <b>${G.player.kills}</b><br>`+
+    `Прожил: <b>${(t/60|0)}:${String(t%60).padStart(2,'0')}</b>`;
+  show('dead');
+}
+
+/* ---------- main update ---------- */
+function update(dt){
+  G.t+=dt;
+  for(const s of G.swarms) updateSwarm(s,dt);
+  const hash=buildHash();
+  combat(hash);
+  pickup(hash);
+  // purge combat deaths + check swarm deaths
+  for(const s of G.swarms){
+    if(s.dead) continue;
+    for(let i=s.units.length-1;i>=0;i--) if(s.units[i].dead) s.units.splice(i,1);
+    if(s.units.length<MIN_UNITS) killSwarm(s);
+  }
+  if(G.foods.length<FOOD_TARGET) scatterFood(Math.min(5,FOOD_TARGET-G.foods.length));
+  for(let i=G.fx.length-1;i>=0;i--){
+    const q=G.fx[i];
+    q.x+=q.vx*dt;q.y+=q.vy*dt;q.vx*=0.92;q.vy*=0.92;q.life-=dt;
+    if(q.life<=0)G.fx.splice(i,1);
+  }
+  const p=G.player;
+  if(p&&!p.dead){
+    bestN=Math.max(bestN,p.units.length);
+    const tz=clamp(1.05/(1+p.units.length/240),0.5,1.0);
+    G.cam.z+=(tz-G.cam.z)*clamp(dt*2,0,1);
+    G.cam.x+=(p.cx-G.cam.x)*clamp(dt*5,0,1);
+    G.cam.y+=(p.cy-G.cam.y)*clamp(dt*5,0,1);
+  }
+}
+
+/* ---------- render ---------- */
+const w2sX=x=>(x-G.cam.x)*G.cam.z+W/2;
+const w2sY=y=>(y-G.cam.y)*G.cam.z+H/2;
+function render(){
+  ctx.fillStyle='#070710';
+  ctx.fillRect(0,0,W,H);
+  const z=G.cam.z;
+
+  // faint grid
+  const grid=110*z;
+  ctx.strokeStyle='rgba(128,137,179,0.07)';
+  ctx.lineWidth=1;
+  const ox=(-G.cam.x*z+W/2)%grid, oy=(-G.cam.y*z+H/2)%grid;
+  ctx.beginPath();
+  for(let x=ox;x<W;x+=grid){ctx.moveTo(x,0);ctx.lineTo(x,H);}
+  for(let y=oy;y<H;y+=grid){ctx.moveTo(0,y);ctx.lineTo(W,y);}
+  ctx.stroke();
+
+  // border
+  ctx.strokeStyle='rgba(255,77,109,0.85)';
+  ctx.lineWidth=6*z;
+  ctx.beginPath();ctx.arc(w2sX(0),w2sY(0),WORLD*z,0,TAU);ctx.stroke();
+
+  const pad=60/z;
+  const vx0=G.cam.x-(W/2)/z-pad,vx1=G.cam.x+(W/2)/z+pad;
+  const vy0=G.cam.y-(H/2)/z-pad,vy1=G.cam.y+(H/2)/z+pad;
+
+  ctx.globalCompositeOperation='lighter';
+
+  // food (pollen)
+  for(const f of G.foods){
+    if(f.x<vx0||f.x>vx1||f.y<vy0||f.y>vy1)continue;
+    const tw=0.6+Math.sin(G.t*3+f.phase)*0.4;
+    ctx.fillStyle=`hsla(${f.hue},90%,65%,${0.5*tw})`;
+    ctx.beginPath();ctx.arc(w2sX(f.x),w2sY(f.y),3.6*z,0,TAU);ctx.fill();
+    ctx.fillStyle=`hsla(${f.hue},90%,80%,${0.9*tw})`;
+    ctx.beginPath();ctx.arc(w2sX(f.x),w2sY(f.y),1.6*z,0,TAU);ctx.fill();
+  }
+
+  // swarms
+  for(const s of G.swarms){
+    if(s.dead)continue;
+    if(s.cx<vx0-500||s.cx>vx1+500||s.cy<vy0-500||s.cy>vy1+500)continue;
+    const alpha=s.guard>0?0.45:1;
+    const ur=(s.cond?2.6:2.1)*z;
+    const halo=`hsla(${s.hue},95%,60%,${0.16*alpha})`;
+    const core=`hsla(${s.hue},95%,${s.cond?75:65}%,${0.95*alpha})`;
+    // halo pass
+    ctx.fillStyle=halo;
+    for(const u of s.units){
+      if(u.x<vx0||u.x>vx1||u.y<vy0||u.y>vy1)continue;
+      ctx.beginPath();ctx.arc(w2sX(u.x),w2sY(u.y),ur*3,0,TAU);ctx.fill();
+    }
+    // core pass
+    ctx.fillStyle=core;
+    for(const u of s.units){
+      if(u.x<vx0||u.x>vx1||u.y<vy0||u.y>vy1)continue;
+      ctx.beginPath();ctx.arc(w2sX(u.x),w2sY(u.y),ur,0,TAU);ctx.fill();
+    }
+  }
+
+  // fx
+  for(const q of G.fx){
+    ctx.fillStyle=`hsla(${q.hue},95%,75%,${clamp(q.life/q.max,0,1)})`;
+    ctx.beginPath();ctx.arc(w2sX(q.x),w2sY(q.y),2.6*z,0,TAU);ctx.fill();
+  }
+
+  ctx.globalCompositeOperation='source-over';
+
+  // names + counts
+  ctx.textAlign='center';
+  for(const s of G.swarms){
+    if(s.dead)continue;
+    if(s.cx<vx0||s.cx>vx1||s.cy<vy0||s.cy>vy1)continue;
+    const r=swarmR(s)*(s.cond?0.3:1)*z;
+    ctx.fillStyle='rgba(240,242,255,.85)';
+    ctx.font=`${Math.max(10,12*z)}px Verdana`;
+    ctx.fillText(`${s.name} · ${s.units.length}`,w2sX(s.cx),w2sY(s.cy)-r-10);
+  }
+}
+
+/* ---------- minimap / hud ---------- */
+function renderMinimap(){
+  const S=118,c=S/2,k=c/WORLD*0.92;
+  mmCtx.clearRect(0,0,S,S);
+  mmCtx.strokeStyle='rgba(255,77,109,.6)';
+  mmCtx.beginPath();mmCtx.arc(c,c,WORLD*k,0,TAU);mmCtx.stroke();
+  for(const s of G.swarms){
+    if(s.dead)continue;
+    mmCtx.fillStyle=s===G.player?'#ffc34d':`hsla(${s.hue},80%,60%,.8)`;
+    mmCtx.beginPath();
+    mmCtx.arc(c+s.cx*k,c+s.cy*k,s===G.player?3:clamp(1+s.units.length/90,1,3),0,TAU);
+    mmCtx.fill();
+  }
+}
+let hudT=0;
+function renderHud(dt){
+  hudT-=dt;
+  if(hudT>0)return;
+  hudT=0.25;
+  const rows=document.getElementById('boardRows');
+  const arr=[...G.swarms].filter(s=>!s.dead).sort((a,b)=>b.units.length-a.units.length);
+  let html='';
+  arr.slice(0,8).forEach((s,i)=>{
+    html+=`<div class="brow ${s===G.player?'me':''}">
+      <span class="nm">${i+1}. ${s.name}</span><span>${s.units.length}</span></div>`;
+  });
+  const p=G.player;
+  if(p&&!p.dead&&arr.indexOf(p)>=8)
+    html+=`<div class="brow me"><span class="nm">${arr.indexOf(p)+1}. ${p.name}</span><span>${p.units.length}</span></div>`;
+  rows.innerHTML=html;
+  if(p&&!p.dead){
+    document.getElementById('mystats').innerHTML=
+      `РОЙ <b>${p.units.length}</b> &nbsp; КИЛЛЫ <b>${p.kills}</b>
+       <div id="enWrap"><div id="enLabel">ЭНЕРГИЯ СЖАТИЯ</div>
+       <div id="enBar"><div id="enFill" style="width:${(p.energy*100)|0}%;
+         background:${p.energy<0.25?'var(--hot)':'var(--amber)'}"></div></div></div>`;
+    cb.style.background=`linear-gradient(to top, rgba(255,195,77,.4) ${(p.energy*100)|0}%, rgba(255,195,77,.06) ${(p.energy*100)|0}%)`;
+    cb.style.borderColor = p.energy<0.1 ? 'var(--hot)' : 'var(--amber)';
+    cb.style.color = p.energy<0.1 ? 'var(--hot)' : 'var(--amber)';
+  }
+  renderMinimap();
+}
+
+/* ---------- screens ---------- */
+const $=id=>document.getElementById(id);
+function show(id){const e=$(id);e.classList.remove('hidden');e.style.display=id==='hud'?'block':'flex';}
+function hide(id){const e=$(id);e.classList.add('hidden');e.style.display='none';}
+$('playBtn').onclick=startGame;
+$('respawnBtn').onclick=respawn;
+$('toMenuBtn').onclick=()=>{G.state='menu';hide('dead');show('menu');};
+$('nameInput').addEventListener('keydown',e=>{if(e.key==='Enter')startGame();});
+
+resetWorld(); // demo behind the menu
+
+/* ---------- loop ---------- */
+let last=performance.now();
+function loop(now){
+  const dt=Math.min((now-last)/1000,0.033);
+  last=now;
+  if(G.state==='menu'){
+    for(const s of G.swarms) if(s.isBot) updateSwarm(s,dt);
+    const hash=buildHash();
+    combat(hash);pickup(hash);
+    for(const s of G.swarms){
+      if(s.dead)continue;
+      for(let i=s.units.length-1;i>=0;i--)if(s.units[i].dead)s.units.splice(i,1);
+      if(s.units.length<MIN_UNITS)killSwarm(s);
+    }
+    if(G.foods.length<FOOD_TARGET)scatterFood(4);
+    for(let i=G.fx.length-1;i>=0;i--){
+      const q=G.fx[i];q.x+=q.vx*dt;q.y+=q.vy*dt;q.life-=dt;
+      if(q.life<=0)G.fx.splice(i,1);
+    }
+    G.t+=dt;
+    G.cam.z=0.55;
+    G.cam.x=Math.cos(performance.now()/11000)*WORLD*0.25;
+    G.cam.y=Math.sin(performance.now()/11000)*WORLD*0.25;
+  } else {
+    update(dt);
+    if(G.state==='play')renderHud(dt);
+  }
+  render();
+  requestAnimationFrame(loop);
+}
+requestAnimationFrame(loop);
+</script>
+</body>
+</html>

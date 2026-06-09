@@ -1,0 +1,18 @@
+{
+  "name": "roy-io",
+  "version": "2.0.0",
+  "description": "РОЙ.IO — swarm-mind arena with authoritative multiplayer (players replace bots; overflow spills to new lobbies)",
+  "type": "module",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js",
+    "dev": "node --watch server.js",
+    "test": "node tests/lobby.test.mjs && node tests/clientworld.test.mjs && node tests/client-flow.test.mjs && node tests/subpath-proxy.test.mjs"
+  },
+  "engines": {
+    "node": ">=18"
+  },
+  "dependencies": {
+    "ws": "^8.18.0"
+  }
+}
