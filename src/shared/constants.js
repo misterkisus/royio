@@ -5,8 +5,11 @@ export const TAU = Math.PI * 2;
 
 // ---- arena / economy ----
 export const WORLD = 3400;        // arena radius
-export const FOOD_TARGET = 520;   // pollen kept on the field
-export const UNIT_CAP = 260;      // max mites per swarm
+export const FOOD_TARGET = 700;   // pollen kept on the field (more food => swarms can grow bigger)
+export const UNIT_CAP = 1000;     // max mites per swarm (the "score" ceiling). Raise for bigger
+                                  // swarms; server cost is ~linear, client is capped by RENDER_UNIT_CAP.
+export const RENDER_UNIT_CAP = 420; // client only: max cosmetic dots drawn per swarm (keeps FPS high
+                                  // for huge swarms; the real count is still shown as the score).
 export const START_UNITS = 32;    // a player/bot starts with this many
 export const MIN_UNITS = 5;       // below this a swarm is "scattered" (dead)
 

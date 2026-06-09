@@ -1,7 +1,7 @@
 // Client-side view model. The server is authoritative over swarm centroids/counts/state;
 // the client renders each swarm as a cosmetic cloud of Units chasing the *interpolated*
 // centroid — visually identical to the original, at a fraction of the bandwidth.
-import { TAU } from '../shared/constants.js';
+import { TAU, RENDER_UNIT_CAP } from '../shared/constants.js';
 import { clamp } from '../shared/util.js';
 import { Unit } from '../shared/Unit.js';
 
@@ -38,12 +38,13 @@ class ClientSwarm {
     this.cx += (this.gcx - this.cx) * k; this.cy += (this.gcy - this.cy) * k;
     this.tx += (this.gtx - this.tx) * k; this.ty += (this.gty - this.ty) * k;
 
-    // match cosmetic unit count to the server count
-    while (this.units.length < this.n) {
+    // match cosmetic dot count to the score, but cap how many we actually draw (FPS)
+    const shown = Math.min(this.n, RENDER_UNIT_CAP);
+    while (this.units.length < shown) {
       const a = Math.random() * TAU, r = Math.random() * this.radius();
       this.units.push(new Unit(this.tx + Math.cos(a) * r, this.ty + Math.sin(a) * r));
     }
-    if (this.units.length > this.n) this.units.length = this.n;
+    if (this.units.length > shown) this.units.length = shown;
 
     const baseR = this.radius();
     for (const u of this.units) u.step(this.tx, this.ty, this.cond, baseR, dt);

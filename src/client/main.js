@@ -128,7 +128,7 @@ class App {
   _updateCamera(dt) {
     const self = this.selfId != null ? this.world.swarms.get(this.selfId) : null;
     if (this.mode === 'play' && self) {
-      const tz = clamp(1.05 / (1 + self.n / 240), 0.5, 1.0);
+      const tz = clamp(1.1 / (1 + self.n / 420), 0.34, 1.0);
       this.cam.z += (tz - this.cam.z) * clamp(dt * 2, 0, 1);
       this.cam.x += (self.cx - this.cam.x) * clamp(dt * 5, 0, 1);
       this.cam.y += (self.cy - this.cam.y) * clamp(dt * 5, 0, 1);
